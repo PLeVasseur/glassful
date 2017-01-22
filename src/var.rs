@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use syntax::ast;
 use syntax::parse::ParseSess;
-use syntax::attr::AttrMetaMethods;
 
 pub fn translate(sess: &ParseSess,
                  out: &mut String,
@@ -12,7 +11,7 @@ pub fn translate(sess: &ParseSess,
     let diag = &sess.span_diagnostic;
 
     for attr in attrs.iter() {
-        let name = &*attr.name();
+        let name = &*attr.value.name.as_str();
         match name {
             // many others: https://www.opengl.org/wiki/Type_Qualifier_%28GLSL%29
             "varying" | "attribute" | "uniform" => {
@@ -25,7 +24,7 @@ pub fn translate(sess: &ParseSess,
     // The special ident 'UNINIT' means no initializer.
     // Rust's syntax does not allow this otherwise on statics.
     if let Some(i) = init {
-        if let ast::ExprPath(_, ref p) = i.node {
+        if let ast::ExprKind::Path(_, ref p) = i.node {
             if let Some(s) = ::util::simple_path(p) {
                 if &s[..] == "UNINIT" {
                     init = None;

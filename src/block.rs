@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use syntax::ast;
 use syntax::parse::ParseSess;
-use syntax::attr::AttrMetaMethods;
 
 pub fn translate(sess: &ParseSess,
                  out: &mut String,
@@ -11,23 +10,22 @@ pub fn translate(sess: &ParseSess,
 
     for st in block.stmts.iter() {
         match st.node {
-            ast::StmtDecl(ref dec, _) => match dec.node {
-                ast::DeclLocal(ref loc) => translate_let(sess, out, &**loc),
-                ast::DeclItem(_) => {
-                    diag.span_err(st.span, "items in functions not supported");
-                }
+            ast::StmtKind::Local(ref loc) => translate_let(sess, out, &**loc),
+            ast::StmtKind::Item(_) => {
+                diag.span_err(st.span, "items in functions not supported")
             },
-            ast::StmtExpr(ref expr, _) | ast::StmtSemi(ref expr, _) => {
+            ast::StmtKind::Expr(ref expr) | ast::StmtKind::Semi(ref expr) => {
                 ::expr::translate(sess, out, &**expr);
                 write!(out, ";\n").unwrap();
             }
-            ast::StmtMac(..) => {
+            ast::StmtKind::Mac(..) => {
                 diag.span_bug(st.span, "macros should be gone by now");
             }
         }
     }
 
-    if let Some(ref expr) = block.expr {
+    // ast::Block.expr removed
+    /*if let Some(ref expr) = block.expr {
         if !allow_return {
             diag.span_err(expr.span, "can't translate a value-producing block here");
         }
@@ -35,7 +33,7 @@ pub fn translate(sess: &ParseSess,
         write!(out, "return ").unwrap();
         ::expr::translate(sess, out, &**expr);
         write!(out, ";\n").unwrap();
-    }
+    }*/
 }
 
 fn translate_let(sess: &ParseSess,

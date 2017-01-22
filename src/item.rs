@@ -12,9 +12,9 @@ pub fn translate(sess: &ParseSess, out: &mut String, item: &ast::Item) {
     }
 
     match item.node {
-        ast::ItemStatic(ref ty, muta, ref expr) => {
+        ast::ItemKind::Static(ref ty, muta, ref expr) => {
             match muta {
-                ast::MutImmutable => (),
+                ast::Mutability::Immutable => (),
                 _ => diag.span_err(item.span, "variables are implicitly mutable"),
             }
 
@@ -22,13 +22,13 @@ pub fn translate(sess: &ParseSess, out: &mut String, item: &ast::Item) {
                              &**ty, Some(&**expr));
         }
 
-        ast::ItemConst(ref ty, ref expr) => {
+        ast::ItemKind::Const(ref ty, ref expr) => {
             write!(out, "const ").unwrap();
             ::var::translate(sess, out, &item.attrs[..], item.ident,
                              &**ty, Some(&**expr));
         }
 
-        ast::ItemFn(ref decl, unsafety, _, abi, ref generics, ref block) => {
+        ast::ItemKind::Fn(ref decl, unsafety, _, abi, ref generics, ref block) => {
             for attr in item.attrs.iter() {
                 diag.span_err(attr.span, "no function attributes are supported");
             }
@@ -55,18 +55,18 @@ pub fn translate(sess: &ParseSess, out: &mut String, item: &ast::Item) {
             }
 
             let output = match *output {
-                ast::NoReturn(..) => {
+                /*ast::NoReturn(..) => {
                     diag.span_err(item.span, "function doesn't return");
                     return;
-                }
-                ast::DefaultReturn(..) => None,
-                ast::Return(ref t) => Some(&**t),
+                }*/
+                ast::FunctionRetTy::Default(..) => None,
+                ast::FunctionRetTy::Ty(ref t) => Some(&**t),
             };
 
             ::fun::translate(sess, out, item.ident, &inputs[..], output, &**block);
         }
 
-        ast::ItemMac(_) => {
+        ast::ItemKind::Mac(_) => {
             diag.span_bug(item.span, "macros should be gone by now");
         }
 

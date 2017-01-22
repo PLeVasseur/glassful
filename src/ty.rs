@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use syntax::ast;
 use syntax::parse::ParseSess;
-use syntax::attr::AttrMetaMethods;
 
 pub fn translate(sess: &ParseSess,
                  out: &mut String,
@@ -9,11 +8,11 @@ pub fn translate(sess: &ParseSess,
     let diag = &sess.span_diagnostic;
 
     match ty.node {
-        ast::TyTup(ref t) if t.len() == 0 => {
+        ast::TyKind::Tup(ref t) if t.len() == 0 => {
             write!(out, "void").unwrap();
         }
 
-        ast::TyPath(_, ref p) => match ::util::simple_path(p) {
+        ast::TyKind::Path(_, ref p) => match ::util::simple_path(p) {
             None => {
                 diag.span_err(ty.span, "can't translate qualified / parametrized name");
             }

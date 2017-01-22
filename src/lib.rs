@@ -1,5 +1,5 @@
-#![feature(rustc_private, slice_patterns)]
-#![deny(warnings)]
+#![feature(rustc_private, slice_patterns, plugin_registrar)]
+//#![deny(warnings)]
 
 extern crate syntax;
 
@@ -7,8 +7,9 @@ use std::borrow::ToOwned;
 use std::thread;
 use syntax::parse::{self, ParseSess};
 use syntax::ext::base::ExtCtxt;
+use syntax::ext::base::DummyResolver;
 use syntax::ext::expand;
-use syntax::attr::AttrMetaMethods;
+//use syntax::attr::AttrMetaMethods;
 
 mod item;
 mod var;
@@ -26,17 +27,18 @@ pub fn translate(source: String) -> String {
     let sess = ParseSess::new();
     let diag = &sess.span_diagnostic;
     let krate = parse::parse_crate_from_source_str(
-        NAME.to_owned(), source, vec![], &sess);
+        NAME.to_owned(), source, &sess);
 
     diag.abort_if_errors();
 
 
     // expand macros
     let ecfg = expand::ExpansionConfig::default(NAME.to_owned());
-    let mut cfg_fg = Vec::new();
-    let ctxt = ExtCtxt::new(&sess, krate.config.clone(), ecfg, &mut cfg_fg);
+    let mut resolver = DummyResolver;
+    let mut ctxt = ExtCtxt::new(&sess, ecfg, &mut resolver);
+    let mut macexpdr = expand::MacroExpander::new(&mut ctxt, false);
 
-    let krate = expand::expand_crate(ctxt, Vec::new(), Vec::new(), krate).0;
+    let krate = macexpdr.expand_crate(krate.unwrap());
 
     // process attributes
     let mut glsl_version = None;
@@ -46,7 +48,7 @@ pub fn translate(source: String) -> String {
                 if glsl_version.is_some() {
                     diag.span_err(attr.span, "version given twice");
                 }
-                glsl_version = Some((*val).to_string());
+                glsl_version = Some(val.as_str());
             } else {
                 diag.span_err(attr.span, "version not given");
             }
